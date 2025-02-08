@@ -1,0 +1,60 @@
+name: GoReleaser
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ '*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    name: Create snapshot
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ vars.GO_VERSION }}
+
+      - name: Run GoReleaser snapshot
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --snapshot --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload snapshot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-artifacts
+          path: dist/
+
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ vars.GO_VERSION }}
+
+      - name: Create release
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
